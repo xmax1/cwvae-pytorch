@@ -1,0 +1,3 @@
+2/8/21
+why would we use tfd.Independent? Creates a joint distribution p(x1, x2, ...) from a batch of distributions p(x1), p(x2), ... such that 
+p(x1=x1, x2=x2, ... ) can be computed. Akin to calling prod on p(x1=x1), p(x2=x2), ...
