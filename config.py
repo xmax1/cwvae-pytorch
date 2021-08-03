@@ -12,9 +12,9 @@ def must_be(value): return field(default=value, metadata=dict(choices=[value]))
 
 @dataclass
 class Config:
-    config: str=r"C:\Users\amwil\OneDrive\projects\msm\cwvae-jax\configs\mmnist.yml"  # Path to config yaml file
-    datadir: str=r"C:\Users\amwil\OneDrive\projects\msm\cwvae-jax\datasets\data\mnist2d"  # Path to root data directory
-    logdir: str=r"C:\Users\amwil\OneDrive\projects\msm\cwvae-jax\experiments\test" # Path to root log directory (eval: dir containing model checkpoint with config in the parent dir)
+    config: str=r"C:\Users\amwil\OneDrive\projects\msm\cwvae-pytorch\configs\mmnist.yml"  # Path to config yaml file
+    datadir: str=r"C:\Users\amwil\OneDrive\projects\msm\datasets\data\mnist2d"  # Path to root data directory
+    logdir: str=r"C:\Users\amwil\OneDrive\projects\msm\cwvae-pytorch\experiments\test" # Path to root log directory (eval: dir containing model checkpoint with config in the parent dir)
 
     # MODEL
     levels: int = 3  # Number of levels in the hierarchy
@@ -25,6 +25,8 @@ class Config:
     cell_stoch_size: int = 20
     cell_deter_size: int = 200
     cell_embed_size: int = 200
+    gru_hidden_prior: int = cell_embed_size
+    gru_hidden_posterior: int = cell_embed_size
     cell_min_stddev: float = .0001  # Minimum standard deviation of prior and posterior distributions
     use_obs: Optional[str] = None  # String of T/Fs per level, e.g. TTF to skip obs at the top level
     channels_mult: int = 1  # Multiplier for the number of channels in the conv encoder

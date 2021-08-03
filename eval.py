@@ -1,14 +1,17 @@
 from datetime import datetime
 from pathlib import Path
 
+
 import numpy as np
 from flax.optim import Adam
 from flax.training import checkpoints
 from jax import random, jit
 
+
 import tools
 from config import parse_config
 from cwvae import Model
+
 
 if __name__ == "__main__":
     c = parse_config(eval=True)

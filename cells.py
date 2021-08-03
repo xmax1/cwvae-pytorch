@@ -1,7 +1,6 @@
 import torch as tc
 from torch import nn
 
-# from tensorflow_probability.substrates.jax import distributions as tfd
 from config import Config
 
 
@@ -10,9 +9,9 @@ class RSSMPrior(nn.Module):
     def __init__(self, cfg: Config):
         super(RSSMPrior, self).__init__()
         self.cfg = cfg
-        self.dense1 = nn.Linear(n_in, cfg.cell_embed_size)  # cell embed size is the output size
-        self.gru = nn.GRUCell(gru_in, gru_hidden)  # dims are the ins and outs of hl1, doesn't need the carry because the hidden state is maintained by pytorch
-        self.dense2 = nn.Linear(gru_hidden, cfg.cell_embed_size)
+        self.dense1 = nn.Linear(cfg.cell_stoch_size + (cfg.cell_stoch_size + cfg.cell_deter_size), cfg.cell_embed_size)  # cell embed size is the output size
+        self.gru = nn.GRUCell(cfg.cell_embed_size, cfg.gru_hidden_prior)  # dims are the ins and outs of hl1, doesn't need the carry because the hidden state is maintained by pytorch
+        self.dense2 = nn.Linear(cfg.gru_hidden_prior, cfg.cell_embed_size)
         self.dense3 = nn.Linear(cfg.cell_embed_size, cfg.cell_stoch_size)
         self.dense4 = nn.Linear(cfg.cell_embed_size, cfg.cell_stoch_size)
 
@@ -20,6 +19,10 @@ class RSSMPrior(nn.Module):
         self.softplus = nn.Softplus(in_place=False)
 
     def forward(self, prev_state, context):
+        '''
+        prev_state: dict = {sample: tensor = (m, ?t, cell_stoch_size), ...
+        context: tensor = (m, ?t, state_size['output'] = cell_stoch_size + cell_deter_size)
+        '''
         data = tc.cat([prev_state['sample'], context], dim=-1)
         hl1 = self.relu(self.dense1(data))
         det_out = self.gru(hl1)
@@ -36,9 +39,8 @@ class RSSMPosterior(nn.Module):
     def __init__(self, cfg: Config):
         super(RSSMPosterior, self).__init__()
         self.cfg = cfg
-        self.dense1 = nn.Linear(n_in, cfg.cell_embed_size)  # cell embed size is the output size
-        self.gru = nn.GRUCell(gru_in, gru_hidden)  # dims are the ins and outs of hl1, doesn't need the carry because the hidden state is maintained by pytorch
-        self.dense2 = nn.Linear(gru_hidden, cfg.cell_embed_size)
+        self.dense1 = nn.Linear(cfg.gru_hidden_prior + cfg.enc_dense_features, cfg.cell_embed_size)  # cell embed size is the output size
+        self.dense2 = nn.Linear(cfg.cell_embed_size, cfg.cell_embed_size)
         self.dense3 = nn.Linear(cfg.cell_embed_size, cfg.cell_stoch_size)
         self.dense4 = nn.Linear(cfg.cell_embed_size, cfg.cell_stoch_size)
 
@@ -46,6 +48,9 @@ class RSSMPosterior(nn.Module):
         self.softplus = nn.Softplus(in_place=False)
 
     def forward(self, prior, obs_inputs):
+        '''
+        prior: dict = {det_out: tensor = (m, ?t, gru_hidden_prior)}
+        '''
         data = tc.cat([prior['det_out'], obs_inputs], dim=-1)
         hl = self.relu(self.dense1(data))
         hl = self.relu(self.dense2(hl))
@@ -63,8 +68,26 @@ class RSSMCell(nn.Module):
         self.prior = RSSMPrior(cfg)
         self.posterior = RSSMPosterior(cfg)
 
+    @property
+    def state_size(self):
+        return dict(
+            mean=self.c.cell_stoch_size, stddev=self.c.cell_stoch_size,
+            sample=self.c.cell_stoch_size, det_out=self.c.cell_deter_size,
+            det_state=self.c.cell_deter_size,
+            output=self.c.cell_stoch_size + self.c.cell_deter_size)
+
+    def zero_state(self, batch_size, dtype=tc.float32):
+        return {k: tc.zeros((batch_size, v), dtype=dtype)
+                for k, v in self.state_size.items()}
+
     def forward(self, state, inputs, use_obs):
-        obs_input, context = inputs
+        context, obs_input = inputs
+        '''
+        state: dict = {sample: tensor = (m, ?t, cell_stoch_size), ...}
+        context: tensor = (m, ?t, state_size['output'].shape[-1] = cell_stoch_size + cell_deter_size)
+        obs_input: tensor = (m, ?t, enc_dense_features)
+        '''
+        
         prior = self.prior(state, context)
         posterior = self.posterior(prior, obs_input) if use_obs else prior
         return posterior, (prior, posterior)

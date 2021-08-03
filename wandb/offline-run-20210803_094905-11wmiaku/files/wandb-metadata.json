@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.7.10",
+    "heartbeatAt": "2021-08-03T07:49:10.283887",
+    "startedAt": "2021-08-03T07:49:05.510683",
+    "docker": null,
+    "gpu": "NVIDIA GeForce GTX 1060",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": ".\\train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "git@github.com:xmax1/cwvae-pytorch.git",
+        "commit": "9cfecba569eec8d355c818b8eb4228b8e5d69010"
+    },
+    "email": "aw16952@bristol.ac.uk",
+    "root": "C:/Users/amwil/OneDrive/projects/msm/cwvae-pytorch",
+    "host": "DESKTOP-HGEMU7I",
+    "username": "amwil",
+    "executable": "C:\\Users\\amwil\\anaconda3\\envs\\bass\\python.exe"
+}

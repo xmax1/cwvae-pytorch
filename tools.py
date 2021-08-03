@@ -1,18 +1,12 @@
 import os
+import torch as tc
 
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
-from jax import numpy as jnp
-from jax.interpreters.xla import DeviceArray
 from skimage.metrics import peak_signal_noise_ratio as psnr_metric
 from skimage.metrics import structural_similarity as ssim_metric
-
-
-def log(kwargs, step=None, prefix=''):
-    wandb.log({prefix + k: np.array(x) if isinstance(x, DeviceArray) else x
-               for k, x in kwargs.items()}, step=step)
 
 
 def _to_padded_strip(images):
@@ -87,7 +81,7 @@ def plot_metrics(metrics, logdir, name):
 
 def video(pred, target, max_batch=8, clip_by=(0., 1.)):
     # Inputs are expected to be (batch, time, height, width, channels).
-    image = jnp.clip(pred[:max_batch], clip_by[0], clip_by[1])
+    image = tc.clip(pred[:max_batch], clip_by[0], clip_by[1])
 
     image = (image - clip_by[0]) / (clip_by[1] - clip_by[0])
     target = (target - clip_by[0]) / (clip_by[1] - clip_by[0])
@@ -95,7 +89,7 @@ def video(pred, target, max_batch=8, clip_by=(0., 1.)):
     target = target[:max_batch]
     error = ((image - target) + 1) / 2
     # Concat ground truth, prediction, and error vertically.
-    frames = jnp.concatenate([target, image, error], 2)
+    frames = tc.concatenate([target, image, error], 2)
     # Concat batch entries horizontally and pull channels forward.
     frames = frames.transpose((1, 4, 2, 0, 3))
     frames = frames.reshape(frames.shape[:3] + (-1,))

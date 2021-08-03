@@ -1,5 +1,6 @@
 import torch as tc
 from torch import nn
+import torch.distributions as tfd
 
 # from tensorflow_probability.substrates.jax import distributions as tfd
 
@@ -136,6 +137,7 @@ class Model(nn.Module):
 
     def setup(self):
         self.encoder = Encoder(self.c)
+        self.c.enc_dense_features = self.encoder.enc_dense_features
         self.model = CWVAE(self.c)
         self.decoder = Decoder(self.c)
 
@@ -146,9 +148,9 @@ class Model(nn.Module):
     def forward(self, obs):
         assert obs.shape[-3:] == (self.c.channels, 64, 64)
         _, priors, posteriors = self.model(self.encoder(obs))
-        output = tc.normal(self.decode(posteriors), self.c.dec_stddev)
-        priors = [tc.normal(d["mean"], d["stddev"]) for d in priors]
-        posteriors = [tc.normal(d["mean"], d["stddev"]) for d in posteriors]
+        output = tfd.Independent(tfd.Normal(self.decode(posteriors), self.c.dec_stddev))
+        priors = [tfd.Independent(tfd.Normal(d["mean"], d["stddev"])) for d in priors]
+        posteriors = [tfd.Independent(tfd.Normal(d["mean"], d["stddev"])) for d in posteriors]
 
         nll_term = -tc.mean(output.log_prob(obs), dim=0)
         kls = [tc.mean(posterior.kl_divergence(prior), dim=0) for prior, posterior in zip(priors, posteriors)]
